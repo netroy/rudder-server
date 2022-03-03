@@ -468,6 +468,7 @@ func (gateway *HandleT) userWebRequestWorkerProcess(userWebRequestWorker *userWe
 
 			// set anonymousId if not set in payload
 			result := gjson.GetBytes(body, "batch")
+			context := gjson.GetBytes(body, "context")
 			out := []map[string]interface{}{}
 			var builtUserID string
 			var notIdentifiable, containsAudienceList bool
@@ -501,6 +502,16 @@ func (gateway *HandleT) userWebRequestWorkerProcess(userWebRequestWorker *userWe
 				if messageId := strings.TrimSpace(vjson.Get("messageId").String()); messageId == "" {
 					toSet["messageId"] = uuid.Must(uuid.NewV4()).String()
 				}
+
+				eventContext := map[string]interface{}{}
+				copyContext := func(key, value gjson.Result) bool {
+					eventContext[key.Str] = value.Value()
+					return true
+				}
+				context.ForEach(copyContext)
+				vjson.Get("context").ForEach(copyContext)
+
+				toSet["context"] = eventContext
 				out = append(out, toSet)
 				return true // keep iterating
 			})
